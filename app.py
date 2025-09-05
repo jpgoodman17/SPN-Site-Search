@@ -1,5 +1,24 @@
 import streamlit as st
 import pandas as pd
+# Try importing the package. If it's nested (e.g., in spn_site_screener_v0_1/), adjust sys.path.
+import os, sys
+
+def _ensure_pkg_on_path():
+    base = os.path.dirname(__file__)
+    # Where the 'spn_screener' folder might be
+    candidates = [
+        os.path.join(base, "spn_screener"),                                # repo root
+        os.path.join(base, "spn_site_screener_v0_1", "spn_screener"),      # nested folder
+    ]
+    for c in candidates:
+        if os.path.isdir(c):
+            parent = os.path.dirname(c)
+            if parent not in sys.path:
+                sys.path.insert(0, parent)
+            return
+
+_ensure_pkg_on_path()
+
 from spn_screener.pipeline import run_pipeline
 
 st.title("SPN Site Screener — NY (Prototype)")
