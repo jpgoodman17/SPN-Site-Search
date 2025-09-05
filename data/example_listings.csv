@@ -1,0 +1,4 @@
+address,city,state,zip,price_usd,acres,lat,lon,cleared_hint
+"0 River Rd","Lyons","NY","14489",350000,18,43.0585,-76.9783,"farm field; majority cleared"
+"17031 State Route 22","Putnam","NY","12861",950000,11,43.8431,-73.3530,"hay/pasture; mostly cleared"
+"24 Villa Ln","Queensbury","NY","12804",420000,6.2,43.3346,-73.6779,"partially cleared, some tree lines"
