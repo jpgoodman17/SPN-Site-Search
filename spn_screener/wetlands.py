@@ -17,7 +17,7 @@ def wetlands_overlaps(polygon_geojson: Dict[str, Any]) -> Dict[str, float]:
 
     # DEC informational wetlands
     dec = query_polygon_intersect(ENDPOINTS["dec_wetlands_informational"], polygon_geojson)
-    dec_polys = [shape(f["geometry"]) for f in dec.get("features", []) if f.get("geometry")]
+    dec_polys = [shape(f["geometry"]) for f in (dec.get("features", []) if isinstance(dec, dict) else []) if f.get("geometry")]
     if dec_polys:
         dec_union = unary_union(dec_polys)
         out["dec_wetlands_ac"] = _acre_area(parcel.intersection(dec_union))
@@ -28,7 +28,7 @@ def wetlands_overlaps(polygon_geojson: Dict[str, Any]) -> Dict[str, float]:
 
     # NWI
     nwi = query_polygon_intersect(ENDPOINTS["nwi_wetlands"], polygon_geojson)
-    nwi_polys = [shape(f["geometry"]) for f in nwi.get("features", []) if f.get("geometry")]
+    nwi_polys = [shape(f["geometry"]) for f in (nwi.get("features", []) if isinstance(nwi, dict) else []) if f.get("geometry")]
     if nwi_polys:
         nwi_union = unary_union(nwi_polys)
         out["nwi_ac"] = _acre_area(parcel.intersection(nwi_union))
