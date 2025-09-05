@@ -12,21 +12,16 @@ def get_national_grid_feeders_near(lon: float, lat: float, radius_miles: float) 
     data = query_point_buffer(layer_url, lon, lat, radius_miles, out_fields="*")
     return data
 
-def summarize_best_capacity(features: Dict[str, Any], capacity_field_candidates=("PVHC_MW","HC_MW","Avail_MW","AvailHC_MW")) -> Optional[Tuple[float, float]]:
-    """Return (best_capacity_mw, distance_m) from the result features if a capacity field is present."""
+def summarize_best_capacity(features: Dict[str, Any], capacity_field_candidates=("PVHC_MW", "HC_MW", "Avail_MW", "AvailHC_MW")):
+    """Safely pick the largest available capacity value from returned features."""
     best = None
     for feat in features.get("features", []):
-        attrs = feat.get("attributes", {})
-        cap = None
-        for f in capacity_field_candidates:
-            if f in attrs and isinstance(attrs[f], (int,float)):
-                cap = attrs[f]; break
-        if cap is None: 
+        attrs = feat.get("attributes", {}) or {}
+        cap = next((attrs.get(f) for f in capacity_field_candidates if isinstance(attrs.get(f), (int, float))), None)
+        if cap is None:
             continue
-        # naive distance if geometry has 'paths' or 'rings' — else skip
-        # For brevity, we won't compute accurate distance here; consider using shapely in production
-        dist_m = 0.0
-        cand = (cap, dist_m)
-        if best is None or cap > best[0]:
-            best = cand
-    return best
+        dist_m = 0.0  # distance calculation omitted in prototype
+        if best is None or float(cap) > best[0]:
+            best = (float(cap), dist_m)
+    return best  # may be None if no capacity fields found
+
