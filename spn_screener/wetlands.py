@@ -33,4 +33,8 @@ def wetlands_overlaps(polygon_geojson: Dict[str, Any]) -> Dict[str, float]:
         nwi_union = unary_union(nwi_polys)
         out["nwi_ac"] = _acre_area(parcel.intersection(nwi_union))
 
+        dec_polys = [shape(f["geometry"]) for f in dec.get("features", []) if f.get("geometry")] if isinstance(dec, dict) else []
+    # same pattern for NWI...
+
+    
     return out
