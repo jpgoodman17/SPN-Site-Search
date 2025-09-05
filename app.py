@@ -1,3 +1,44 @@
+
+# --- Smart importer: find spn_screener anywhere and import run_pipeline ---
+import os, sys, pathlib, importlib.util
+
+def _find_run_pipeline():
+    # 1) Try the normal import
+    try:
+        from spn_screener.pipeline import run_pipeline  # noqa: F401
+        return run_pipeline
+    except Exception:
+        pass
+
+    base = pathlib.Path(__file__).resolve().parent
+
+    # 2) Search the repo for a folder called "spn_screener"
+    for p in base.rglob("spn_screener"):
+        if p.is_dir():
+            parent = str(p.parent)
+            if parent not in sys.path:
+                sys.path.insert(0, parent)
+            try:
+                from spn_screener.pipeline import run_pipeline  # noqa: F401
+                return run_pipeline
+            except Exception:
+                continue
+
+    # 3) Fallback: load pipeline.py directly if found
+    for pipeline_py in base.rglob("pipeline.py"):
+        if pipeline_py.parent.name == "spn_screener":
+            spec = importlib.util.spec_from_file_location("spn_screener.pipeline", pipeline_py)
+            mod = importlib.util.module_from_spec(spec)
+            assert spec.loader
+            spec.loader.exec_module(mod)
+            return getattr(mod, "run_pipeline")
+
+    raise ImportError("Could not find spn_screener.pipeline. Check that your repo has a 'spn_screener' folder with pipeline.py inside.")
+
+RUN_PIPELINE = _find_run_pipeline()
+# --- End smart importer ---
+
+
 import streamlit as st
 import pandas as pd
 # Try importing the package. If it's nested (e.g., in spn_site_screener_v0_1/), adjust sys.path.
@@ -28,7 +69,7 @@ if uploaded:
     inp = "/tmp/in.csv"
     with open(inp, "wb") as f: f.write(uploaded.read())
     outp = "/tmp/out.csv"
-    run_pipeline(inp, outp)
+    RUN_PIPELINE(inp, outp)
     df = pd.read_csv(outp)
     st.success("Done.")
     st.dataframe(df)
