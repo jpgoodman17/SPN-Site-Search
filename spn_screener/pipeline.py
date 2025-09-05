@@ -6,7 +6,11 @@ from dataclasses import dataclass, asdict
 from typing import Dict, Any
 
 from .config import SEARCH_RADIUS_MILES, DC_PER_ACRE_KW, DC_AC_RATIO
-from .hosting_capacity import get_national_grid_feeders_near, summarize_best_capacity
+from .hosting_capacity import (
+    get_national_grid_feeders_near,
+    summarize_best_capacity,
+    has_blue_green_capacity_ng,
+)
 from .boundaries import lookup_municipality
 from .landcover import estimate_cleared_acres
 from .wetlands import wetlands_overlaps
@@ -119,6 +123,12 @@ def process_row(row: Dict[str, Any]) -> SiteResult:
             best_mw = float(best[0])
         except Exception:
             best_mw = 0.0
+    # Color-based potential capacity: any blue/green HC line within the radius?
+    try:
+        if has_blue_green_capacity_ng(lon, lat, SEARCH_RADIUS_MILES):
+            notes.append("Potential capacity: blue/green HC lines within 1.5 miles (National Grid).")
+    except Exception:
+        pass
 
     # Decision logic
     decision = "PASS"
