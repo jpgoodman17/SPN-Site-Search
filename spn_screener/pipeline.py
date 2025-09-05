@@ -45,11 +45,26 @@ def process_row(row: Dict[str, Any]) -> SiteResult:
     county = muni.get("county","")
 
     est_cleared = estimate_cleared_acres(acres, row.get("cleared_hint",""))
-    # Create a crude square parcel around point for wetlands check (production: use parcel polygon)
-    # ~ 150m half-width square (approx 18 acres at 300x300m)
-    ddeg = 150 / 111139
-    parcel_poly = {"type":"Polygon","coordinates":[
-        [[lon-ddeg,lat-ddeg],[lon+ddeg,lat-ddeg],[lon+ddeg,lat+ddeg],[lon-ddeg,lat+ddeg],[lon-ddeg,lat-ddeg]]
+    
+ # Create a square footprint sized by acres (very rough, center at lat/lon).
+# side (meters) ≈ sqrt(acres * 4046.85642). Use half-side to build a square.
+import math
+side_m = math.sqrt(max(acres, 0.1) * 4046.85642)
+half_m = side_m / 2.0
+# Convert meters to degrees (very rough; good enough for screening)
+m_to_deg = 1.0 / 111139.0
+ddeg = half_m * m_to_deg
+parcel_poly = {
+    "type": "Polygon",
+    "coordinates": [[
+        [lon - ddeg, lat - ddeg],
+        [lon + ddeg, lat - ddeg],
+        [lon + ddeg, lat + ddeg],
+        [lon - ddeg, lat + ddeg],
+        [lon - ddeg, lat - ddeg],
+    ]]
+}
+
     ]}
     wet = wetlands_overlaps(parcel_poly)
     est_buildable = max(est_cleared - (wet["dec_wetlands_ac"] + wet["dec_adjacent_area_ac"] + wet["nwi_ac"]), 0.0)
