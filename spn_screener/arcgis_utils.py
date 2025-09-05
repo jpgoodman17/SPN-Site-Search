@@ -1,13 +1,15 @@
-from typing import Dict, Any, Optional, Tuple, List
-import requests, math
+from typing import Dict, Any
+import requests
 
-def _miles_to_meters(mi: float) -> float:
-    return mi * 1609.344
+def _safe_json(resp: requests.Response) -> Dict[str, Any]:
+    try:
+        return resp.json()
+    except Exception:
+        # Return an empty, harmless structure so pipeline can continue
+        return {"features": [], "error": "non_json_response", "status_code": resp.status_code, "text_snippet": resp.text[:200]}
 
 def query_point_buffer(layer_url: str, lon: float, lat: float, radius_miles: float, out_fields: str = "*") -> Dict[str, Any]:
-    """Query an ArcGIS FeatureServer/MapServer layer by a circular buffer around lon/lat (WGS84)."""
-    buffer_m = _miles_to_meters(radius_miles)
-    # Use a simple circular buffer via distance= with geometry type=esriGeometryPoint
+    buffer_m = radius_miles * 1609.344
     params = {
         "f": "json",
         "where": "1=1",
@@ -20,13 +22,15 @@ def query_point_buffer(layer_url: str, lon: float, lat: float, radius_miles: flo
         "outFields": out_fields,
         "returnGeometry": "true",
     }
-    r = requests.get(f"{layer_url}/query", params=params, timeout=30)
-    r.raise_for_status()
-    return r.json()
+    headers = {"User-Agent": "SPN-Screener/0.1"}
+    try:
+        r = requests.get(f"{layer_url}/query", params=params, headers=headers, timeout=25)
+        r.raise_for_status()
+        return _safe_json(r)
+    except Exception as e:
+        return {"features": [], "error": f"request_failed: {e}"}
 
 def query_polygon_intersect(layer_url: str, polygon_geojson: Dict[str, Any], out_fields: str="*") -> Dict[str, Any]:
-    """Query a layer for features intersecting a polygon (GeoJSON in WGS84)."""
-    # Convert GeoJSON polygon to ArcGIS JSON
     rings = polygon_geojson["coordinates"]
     geom = {"rings": rings, "spatialReference": {"wkid": 4326}}
     params = {
@@ -39,6 +43,11 @@ def query_polygon_intersect(layer_url: str, polygon_geojson: Dict[str, Any], out
         "outFields": out_fields,
         "returnGeometry": "true",
     }
-    r = requests.post(f"{layer_url}/query", json=params, timeout=60)
-    r.raise_for_status()
-    return r.json()
+    headers = {"User-Agent": "SPN-Screener/0.1"}
+    try:
+        r = requests.post(f"{layer_url}/query", json=params, headers=headers, timeout=45)
+        r.raise_for_status()
+        return _safe_json(r)
+    except Exception as e:
+        return {"features": [], "error": f"request_failed: {e}"}
+
